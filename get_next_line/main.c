@@ -5,8 +5,8 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: jchene <jchene@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2021/11/06 21:53:47 by jchene            #+#    #+#             */
-/*   Updated: 2021/11/07 13:48:53 by jchene           ###   ########.fr       */
+/*   Created: 2021/11/07 14:48:05 by jchene            #+#    #+#             */
+/*   Updated: 2021/11/07 15:23:12 by jchene           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,8 +23,5 @@ int	main(void)
 		free(line);
 		line = NULL;
 	}
-	printf("%s\n", line);
-	free(line);
-	line = NULL;
 	return (0);
 }

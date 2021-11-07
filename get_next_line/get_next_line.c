@@ -5,8 +5,8 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: jchene <jchene@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2021/11/06 22:14:13 by jchene            #+#    #+#             */
-/*   Updated: 2021/11/07 01:49:55 by jchene           ###   ########.fr       */
+/*   Created: 2021/11/07 14:16:51 by jchene            #+#    #+#             */
+/*   Updated: 2021/11/07 15:13:51 by jchene           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,19 +16,19 @@ int	ft_strlen(char *str)
 {
 	int	i;
 
-	i = 0;
 	if (!str)
-		return (i);
+		return (0);
+	i = 0;
 	while (str[i])
 		i++;
 	return (i);
 }
 
-void	ft_bzero(void *b, size_t n)
+void	ft_bzero(void *p, unsigned int n)
 {
 	unsigned char	*ptr;
 
-	ptr = (unsigned char *)b;
+	ptr = (unsigned char *)p;
 	while (n-- > 0)
 		*(ptr++) = 0;
 }
@@ -41,9 +41,9 @@ void	ft_append(char *dst, char *src)
 	if (!src)
 		return ;
 	i = 0;
-	j = 0;
 	while (dst[i] != '\0')
 		i++;
+	j = 0;
 	while (src[j])
 	{
 		dst[i] = src[j];
@@ -56,20 +56,21 @@ void	ft_append(char *dst, char *src)
 
 char	*ft_strjoin(char *line, char *buffer)
 {
-	char			*array;
-	unsigned int	size;
+	int		size;
+	char	*new_line;
 
 	if (!line && !buffer)
 		return (NULL);
 	size = ft_strlen(line) + ft_strlen(buffer);
-	array = malloc(sizeof(char) * (size + 1));
-	if (!array)
+	new_line = malloc(sizeof(char) * (size + 1));
+	if (!new_line)
 		return (NULL);
-	ft_bzero(array, size + 1);
-	ft_append(array, line);
-	ft_append(array, buffer);
+	ft_bzero(new_line, size + 1);
+	ft_append(new_line, line);
+	ft_append(new_line, buffer);
 	free(line);
-	return (array);
+	line = NULL;
+	return (new_line);
 }
 
 char	*get_line(char *remains)
@@ -105,6 +106,7 @@ char	*cut_line(char *remains)
 	if (!remains[i])
 	{
 		free(remains);
+		remains = NULL;
 		return (NULL);
 	}
 	size = ft_strlen(remains);
@@ -121,15 +123,15 @@ char	*cut_line(char *remains)
 
 int	get_next_line(char **line)
 {
-	int			fd;
-	int			readed;
-	char		buffer[BUFFER_SIZE + 1];
 	static char	*remains;
+	char		buffer[BUFFER_SIZE + 1];
+	int			readed;
+	int			fd;
 
 	fd = 0;
 	readed = 1;
-	buffer[0] = 0;
-	while (buffer[0] != '\n' && readed != 0)
+	ft_bzero(buffer, 2);
+	while (buffer[0] != '\n' && readed > 0)
 	{
 		readed = read(fd, buffer, BUFFER_SIZE);
 		if (readed == -1)
@@ -139,8 +141,5 @@ int	get_next_line(char **line)
 	}
 	*line = get_line(remains);
 	remains = cut_line(remains);
-	if (readed == 0)
-		return (0);
-	else
-		return (1);
+	return (readed == 0 ? 0 : 1);
 }
