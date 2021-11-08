@@ -6,11 +6,12 @@
 /*   By: jchene <jchene@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/11/08 01:52:57 by jchene            #+#    #+#             */
-/*   Updated: 2021/11/08 02:36:01 by jchene           ###   ########.fr       */
+/*   Updated: 2021/11/08 02:49:59 by jchene           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "./get_next_line.h"
+# include <stdio.h>
 
 int	main(void)
 {

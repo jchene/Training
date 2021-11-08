@@ -6,7 +6,7 @@
 /*   By: jchene <jchene@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/11/08 01:47:53 by jchene            #+#    #+#             */
-/*   Updated: 2021/11/08 02:25:14 by jchene           ###   ########.fr       */
+/*   Updated: 2021/11/08 02:49:51 by jchene           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,6 @@
 # define BUFFER_SIZE 1
 # include <unistd.h>
 # include <stdlib.h>
-# include <stdio.h>
 
 int	get_next_line(char **line);
 
