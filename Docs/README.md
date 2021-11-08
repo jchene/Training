@@ -1,4 +1,4 @@
-Original README from markveligod: [markveligod](https://github.com/markveligod/examrank-02-03-04-05-06)
+Original README from [markveligod](https://github.com/markveligod/examrank-02-03-04-05-06)
 # :white_check_mark: EXAM (project 2020-2021)
 Exams of the new graph.  
 Subjects are in the folder of each exercises, along with a solution and a test file.  
