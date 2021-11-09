@@ -6,7 +6,7 @@
 /*   By: jchene <jchene@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/11/09 19:25:49 by jchene            #+#    #+#             */
-/*   Updated: 2021/11/09 21:42:32 by jchene           ###   ########.fr       */
+/*   Updated: 2021/11/10 00:28:54 by jchene           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,7 @@ int	ft_strlen(char *str)
 
 void	ft_bzero(void *p, unsigned int size)
 {
-	unsigned char *ptr;
+	unsigned char	*ptr;
 
 	ptr = (unsigned char *)p;
 	while (size-- > 0)
