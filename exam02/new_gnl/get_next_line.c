@@ -6,7 +6,7 @@
 /*   By: jchene <jchene@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/11/09 19:25:49 by jchene            #+#    #+#             */
-/*   Updated: 2021/11/10 00:28:54 by jchene           ###   ########.fr       */
+/*   Updated: 2021/11/10 00:29:53 by jchene           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -135,6 +135,8 @@ char	*get_next_line(int fd)
 	char		buffer[BUFFER_SIZE + 1];
 	char		*line;
 
+	if (fd < 0)
+		return (NULL);
 	ft_bzero(buffer, BUFFER_SIZE + 1);
 	while (!is_charset(remains, '\n') && readed)
 	{
