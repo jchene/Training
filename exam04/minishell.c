@@ -6,7 +6,7 @@
 /*   By: jchene <jchene@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/11 17:13:01 by jchene            #+#    #+#             */
-/*   Updated: 2023/01/12 20:24:52 by jchene           ###   ########.fr       */
+/*   Updated: 2023/01/14 17:45:09 by jchene           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -62,6 +62,7 @@ t_data	*data(void)
 	return (&data);
 }
 
+//Initialise le child avec les valeurs par defaut
 void init_child(child *ch)
 {
 	ch->fds[IN] = -1;
@@ -75,10 +76,10 @@ void	init_data(int argc, char **argv, char **envp)
 	ARGC = argc;
 	ARGV = argv;
 	ENVP = envp;
-	PIP1_RD = -1;
-	PIP1_WR = -1;
-	PIP2_RD = -1;
-	PIP2_WR = -1;
+	DATA->pipes[0][IN] = -1;
+	DATA->pipes[0][OUT] = -1;
+	DATA->pipes[1][IN] = -1;
+	DATA->pipes[1][OUT] = -1;
 	E_STATUS = SUCCESS;
 	init_child(&DATA->childs[0]);
 	init_child(&DATA->childs[1]);
@@ -86,6 +87,7 @@ void	init_data(int argc, char **argv, char **envp)
 
 //-----			-----//
 
+//Free les childs
 int destructor(int status)
 {
 	if (DATA->childs[0].args)
@@ -102,24 +104,24 @@ int destructor(int status)
 	return (status);
 }
 
+
 void	start_child(child *ch, int pos)
 {
 	int i = 0;
-	while (i + pos < ARGC)
+	while (i + pos + 1 < ARGC && strcmp(ARGV[i + pos + 1], ";") && strcmp(ARGV[i + pos + 1], "|")) //Compte le nombre d'arguments
 	{
-		if (strcmp(ARGV[i + pos], ";") == 0)
-			break;
 		i++;
 	}
-	ch->args = (char**)malloc(sizeof(char *) * i + 1);
-	if (!ch->args)
+	ch->args = (char**)malloc(sizeof(char *) * (i + 1));
+	if (!ch->args) //Si l'allocation a échouée
 	{
-		destructor(FAILURE);
+		destructor(FAILURE); //Free les childs alloués et set le status a Failure
 		return;
 	}
-	for (int j = 0; j < i; j++)
+	ch->cmd = ARGV[pos + 1];
+	for (int j = 0; j < i; j++) //Remplis les argument du child
 	{
-		ch->args[j] = NULL;
+		ch->args[j] = ARGV[pos + j + 1];
 	}
 }
 
@@ -132,27 +134,28 @@ void process_args()
 	while (1)
 	{
 		j = 0;
-		init_child(&(DATA->childs[child_id]));
-		start_child(&(DATA->childs[child_id]), i);
-		if (E_STATUS == FAILURE)
-			return;
-		if (i > 0 && strcmp(ARGV[i - 1], "|") == 0)
+		init_child(&(DATA->childs[child_id]));	//Initialise le child avec les valeurs par defaut
+		
+		if (i > 0 && strcmp(ARGV[i - 1], "|") == 0)	//Check du fd d'entree si pipe
 			DATA->childs[child_id].fds[IN] = DATA->pipes[1 - child_id][OUT];
-		if (i == 0 || strcmp(ARGV[i - 1], ";") == 0)
-			DATA->childs[child_id].cmd = ARGV[i];
-		else
+		
+		while (j < ARGC && strcmp(ARGV[j], ";") && strcmp(ARGV[j], "|")) //Check si pipe de sortie
 		{
-			while (i < ARGC && strcmp(ARGV[i], ";") && strcmp(ARGV[i], "|"))
-				DATA->childs[child_id].args[j++] = ARGV[i++];
+			j++;
 		}
-		if (i < ARGC && strcmp(ARGV[i], "|") == 0)
+		if (j < ARGC && !strcmp(ARGV[i], "|")) //Si pipe de sortie crée le pipe et le branche
 		{
 			if (pipe(DATA->pipes[child_id]))
 			{
 				destructor(FAILURE);
 				return;
 			}
+			DATA->childs[child_id].fds[OUT] = DATA->pipes[child_id][IN];
 		}
+
+		start_child(&(DATA->childs[child_id]), i); //Alloue et remplis le child avec la commande et les arguments
+		if (E_STATUS == FAILURE) //Verifie si l'allocation s'est bien deroulée
+			return;
 	}
 }
 
