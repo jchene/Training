@@ -6,7 +6,7 @@
 /*   By: jchene <jchene@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/11 17:13:01 by jchene            #+#    #+#             */
-/*   Updated: 2023/01/16 19:49:41 by jchene           ###   ########.fr       */
+/*   Updated: 2023/01/17 18:48:22 by jchene           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,8 @@
 #include <sys/wait.h>
 #include <signal.h>
 
+#include <errno.h>
+
 //-----STATUS CODES-----//
 
 #define FAILURE -1
@@ -34,6 +36,8 @@
 
 #define IN 0
 #define OUT 1
+#define PIN 1
+#define POUT 0
 
 #define DATA data()
 #define ARGC DATA->argc
@@ -87,7 +91,7 @@ const char	*get_status(int status)
 // Set le status
 int	set_status(int status)
 {
-	fprintf(stderr, "Setting status to: %s\n", get_status(status));
+	//fprintf(stderr, "Setting status to: %s\n", get_status(status));
 	E_STATUS = status;
 	return(status);
 }
@@ -107,31 +111,31 @@ int init_data(int argc, char **argv, char **envp)
 	ARGC = argc;
 	ARGV = argv;
 	ENVP = envp;
-	fprintf(stderr, "ARGC: %d\n", argc);
+	//fprintf(stderr, "ARGC: %d\n", argc);
 	E_STATUS = INIT;
 	init_child(&DATA->childs[0]);
 	init_child(&DATA->childs[1]);
 	if (pipe(DATA->pipes[0]) == -1)
 		return (set_status(FAILURE));
-	fprintf(stderr, "First pipe: in: %d out: %d\n", DATA->pipes[0][IN], DATA->pipes[0][OUT]);
+	//fprintf(stderr, "First pipe: in: %d out: %d\n", DATA->pipes[0][PIN], DATA->pipes[0][POUT]);
 	if (pipe(DATA->pipes[1]) == -1)
 		return (set_status(FAILURE));
-	fprintf(stderr, "Second pipe: in: %d out: %d\n", DATA->pipes[1][IN], DATA->pipes[1][OUT]);
+	//fprintf(stderr, "Second pipe: in: %d out: %d\n", DATA->pipes[1][PIN], DATA->pipes[1][POUT]);
 	DATA->std_fds[IN] = dup(STDIN_FILENO);
 	if (DATA->std_fds[IN] == -1)
 		return (set_status(FAILURE));
-	fprintf(stderr, "Saved STDIN\n");
+	//fprintf(stderr, "Saved STDIN\n");
 	DATA->std_fds[OUT] = dup(STDOUT_FILENO);
 	if (DATA->std_fds[OUT] == -1)
 		return (set_status(FAILURE));
-	fprintf(stderr, "Saved STDOUT\n");
+	//fprintf(stderr, "Saved STDOUT\n");
 	return (E_STATUS);
 }
 
 // Free les childs et set le status a status
 int destructor(int status)
 {
-	fprintf(stderr, "Destroying with status: %d\n", status);
+	//fprintf(stderr, "Destroying with status: %d\n", status);
 	if (DATA->childs[0].args)
 	{
 		free(DATA->childs[0].args);
@@ -151,52 +155,54 @@ int fill_child(t_child *ch, int child_id, int *pos)
 {
 	int i = 0;
 
-	fprintf(stderr, "Filling child: %d at pos %d\n", child_id, *pos);
+	//fprintf(stderr, "Filling child: %d at pos %d\n", child_id, *pos);
 	if (*pos > 0 && !strcmp(ARGV[(*pos + 1) - 1], "|")) //Si pipe en entrée
 	{
 		ch->active_pipe[IN] = 1;
-		if (dup2(DATA->pipes[1 - child_id][OUT], STDIN_FILENO) == -1) //Branche l'input du child sur le pipe de numero inverse au child
+		if (dup2(DATA->pipes[1 - child_id][POUT], STDIN_FILENO) == -1) //Branche l'input du child sur le pipe de numero inverse au child
 			return (set_status(FAILURE));
-		fprintf(stderr, "		Input connected %d\n", DATA->pipes[1 - child_id][OUT]);
+		//fprintf(stderr, "		Input connected %d\n", DATA->pipes[1 - child_id][POUT]);
 	}
-	while (i + *pos + 2 < ARGC && strcmp(ARGV[i + *pos + 2], ";") && strcmp(ARGV[i + *pos + 2], "|")) // Compte le nombre d'arguments
+	while (i + *pos + 1 < ARGC && strcmp(ARGV[i + *pos + 1], ";") && strcmp(ARGV[i + *pos + 1], "|")) // Compte le nombre d'arguments
 	{
 		i++;
 	}
-	fprintf(stderr, "Counted %d args\n", i);
+	//fprintf(stderr, "Counted %d args\n", i);
 	ch->args = (char **)malloc(sizeof(char *) * (i + 1)); //Alloue la tableau de pointeurs sur arguments
 	if (!ch->args) // Si l'allocation a échouée
-		return(set_status(FAILURE));	
-	fprintf(stderr, "Malloc ok\nI:%d\n", i);
+		return(set_status(FAILURE));
+	for (int j = 0; j < i + 1; j++)
+		ch->args[j] = NULL;
+	//fprintf(stderr, "Malloc ok\nI:%d\n", i);
 	i = 0;
 	ch->cmd = ARGV[*pos + 1];	// Recupere la commande
-	while (i + *pos + 2 < ARGC && strcmp(ARGV[i + *pos + 2], ";") && strcmp(ARGV[i + *pos + 2], "|")) // Recupere les arguments
+	while (i + *pos + 1 < ARGC && strcmp(ARGV[i + *pos + 1], ";") && strcmp(ARGV[i + *pos + 1], "|")) // Recupere les arguments
 	{
-		ch->args[i] = ARGV[i + *pos + 2];
+		ch->args[i] = ARGV[i + *pos + 1];
 		i++;
 	}
-	fprintf(stderr, "Command: %s\nArg1: %s\nI: %d\n", ch->cmd, ch->args[0], i);
-	if (i + *pos + 2 < ARGC && (!strcmp(ARGV[i + *pos + 2], "|") || !strcmp(ARGV[i + *pos + 2], ";"))) //So on arrive a la fin de la commande on set le status
+	//fprintf(stderr, "Command: %s\nArg1: %s\nArg2: %s\nI: %d\n", ch->cmd, ch->args[0], ch->args[1], i);
+	if (i + *pos + 1 < ARGC && (!strcmp(ARGV[i + *pos + 1], "|") || !strcmp(ARGV[i + *pos + 1], ";"))) //So on arrive a la fin de la commande on set le status
 		set_status(END_OF_CMD);
 
-	if (i + *pos + 2 < ARGC && !strcmp(ARGV[i + *pos + 2], "|")) //Si pipe de sortie crée le pipe et le branche
+	if (i + *pos + 1 < ARGC && !strcmp(ARGV[i + *pos + 1], "|")) //Si pipe de sortie crée le pipe et le branche
 	{
 		ch->active_pipe[OUT] = 1;
-		fprintf(stderr, "kjwebcwbekwbekjbwckjbckjwbcwejkbcwekjcb\n");
-		if (dup2(DATA->pipes[child_id][IN], STDOUT_FILENO) == -1) //Branche l'input du child sur le pipe de numero inverse au child
+		//fprintf(stderr, "kjwebcwbekwbekjbwckjbckjwbcwejkbcwekjcb\n");
+		if (dup2(DATA->pipes[child_id][PIN], STDOUT_FILENO) == -1) //Branche l'input du child sur le pipe de numero inverse au child
 			return (set_status(FAILURE));
-		fprintf(stderr, "		Output connected: %d\n", DATA->pipes[child_id][IN]);
+		//fprintf(stderr, "		Output connected: %d\n", DATA->pipes[child_id][PIN]);
 	}
-	if (i + *pos + 2 >= ARGC) //Si on est arrivé a la fin de ligne set le status
+	if (i + *pos + 1 >= ARGC) //Si on est arrivé a la fin de ligne set le status
 		set_status(END_OF_LINE);
-	if (E_STATUS == END_OF_CMD)
-		fprintf(stderr, "End of command\n");
-	else if (E_STATUS == END_OF_LINE)
-		fprintf(stderr, "End of line\n");
-	*pos += i;
+	//if (E_STATUS == END_OF_CMD)
+		//fprintf(stderr, "End of command\n");
+	//else if (E_STATUS == END_OF_LINE)
+		//fprintf(stderr, "End of line\n");
+	*pos += i - 1;
 	if (E_STATUS == END_OF_CMD)
 		*pos += 2;
-	fprintf(stderr, "Pos now at: %d\n", *pos);
+	//fprintf(stderr, "Pos now at: %d\n", *pos);
 	return (E_STATUS);
 }
 
@@ -206,31 +212,29 @@ int launch_child(t_child *ch, int child_id, int pos)
 	ch->child_pid = fork();
 	if (ch->child_pid == 0)
 	{
-		fprintf(stderr, "pid child: %d\n", getpid());
-		execve(ch->cmd, ch->args, ENVP);
+		//fprintf(stderr, "pid child: %d\n", getpid());
+		if (execve(ch->cmd, ch->args, ENVP) == -1)
+			//fprintf(stderr, "did not execute: %s\n", strerror(errno));
 		exit(0);
 	}
 	else
 	{
-		fprintf(stderr, "pid parent: %d\n", getpid());
+		//fprintf(stderr, "pid parent: %d\n", getpid());
 		if (ch->active_pipe[IN])
 		{
-			close(DATA->pipes[1 - child_id][IN]);
-			fprintf(stderr, "closed: %d\n", DATA->pipes[1 - child_id][IN]);
-			close(DATA->pipes[1 - child_id][OUT]);
-			fprintf(stderr, "closed: %d\n", DATA->pipes[1 - child_id][OUT]);
-			while (i + pos + 2 < ARGC && strcmp(ARGV[i + pos + 2], "|") && strcmp(ARGV[i + pos + 2], ";"))
+			close(DATA->pipes[1 - child_id][PIN]);
+			//fprintf(stderr, "closed: %d\n", DATA->pipes[1 - child_id][PIN]);
+			close(DATA->pipes[1 - child_id][POUT]);
+			//fprintf(stderr, "closed: %d\n", DATA->pipes[1 - child_id][POUT]);
+			while (i + pos + 1 < ARGC && strcmp(ARGV[i + pos + 1], "|") && strcmp(ARGV[i + pos + 1], ";"))
 				i++;
-			fprintf(stderr, "iiiiiiii: %d\n", i);
-			if (i + pos + 2 < ARGC && !strcmp(ARGV[i + pos + 2], "|"))
+			//fprintf(stderr, "iiiiiiii: %d\n", i);
+			if (i + pos + 1 < ARGC && !strcmp(ARGV[i + pos + 1], "|"))
 			{
 				pipe(DATA->pipes[1 - child_id]);
-				fprintf(stderr, "New pipe: in: %d out: %d\n", DATA->pipes[1 - child_id][IN], DATA->pipes[1 - child_id][OUT]);
+				//fprintf(stderr, "New pipe: in: %d out: %d\n", DATA->pipes[1 - child_id][PIN], DATA->pipes[1 - child_id][POUT]);
 			}
 		}
-		dup2(DATA->std_fds[IN], STDIN_FILENO);
-		dup2(DATA->std_fds[IN], STDIN_FILENO);
-		fprintf(stderr, "reset to std fds\n");
 	}
 	return (0);
 }
@@ -242,7 +246,7 @@ int process_args()
 
 	while (E_STATUS != END_OF_LINE)
 	{
-		fprintf(stderr, "----------------------------\n");
+		//fprintf(stderr, "----------------------------\n");
 		init_child(&(DATA->childs[child_id]));	// Initialise le child avec les valeurs par defaut
 		fill_child(&(DATA->childs[child_id]), child_id, &i);	// Alloue, remplis le child avec la commande et les arguments et branche les pipes
 		if (E_STATUS == FAILURE)
