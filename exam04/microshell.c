@@ -6,7 +6,7 @@
 /*   By: jchene <jchene@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/11 17:13:01 by jchene            #+#    #+#             */
-/*   Updated: 2023/01/18 18:22:03 by jchene           ###   ########.fr       */
+/*   Updated: 2023/01/20 15:32:33 by jchene           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -244,6 +244,11 @@ int launch_child(t_child *ch, int child_id, int pos)
 	else
 	{
 		fprintf(stderr, "pid parent: %d\n", getpid());
+		if (ch->active_pipe[OUT])
+		{
+			close(DATA->pipes[child_id][PIN]);
+			DATA->pipes[child_id][PIN] = -1;
+		}
 		if (ch->active_pipe[IN])
 		{
 			close(DATA->pipes[1 - child_id][PIN]);
@@ -260,6 +265,9 @@ int launch_child(t_child *ch, int child_id, int pos)
 				fprintf(stderr, "New pipe: in: %d out: %d\n", DATA->pipes[1 - child_id][PIN], DATA->pipes[1 - child_id][POUT]);
 			}
 		}
+		dup2(DATA->std_fds[IN], STDIN_FILENO);
+		dup2(DATA->std_fds[IN], STDIN_FILENO);
+		fprintf(stderr, "reset to std fds\n");
 	}
 	return (0);
 }
